@@ -67,8 +67,12 @@ defmodule Mail do
     end)
   end
 
-  def get_text(%Mail.Message{headers: %{"content-type" => "text/plain" <> _}} = message), do: message
-  def get_text(%Mail.Message{headers: %{"content-type" => ["text/plain" | _]}} = message), do: message
+  def get_text(%Mail.Message{headers: %{"content-type" => "text/plain" <> _}} = message),
+    do: message
+
+  def get_text(%Mail.Message{headers: %{"content-type" => ["text/plain" | _]}} = message),
+    do: message
+
   def get_text(%Mail.Message{}), do: nil
 
   @doc """

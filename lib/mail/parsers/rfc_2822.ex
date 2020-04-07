@@ -149,8 +149,8 @@ defmodule Mail.Parsers.RFC2822 do
 
   # Fixes invalid value: Wed, 14 10 2015 12:34:17
   def erl_from_timestamp(
-        <<date::binary-size(2), " ", month_digits::binary-size(2), " ", year::binary-size(4),
-          " ", hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
+        <<date::binary-size(2), " ", month_digits::binary-size(2), " ", year::binary-size(4), " ",
+          hour::binary-size(2), ":", minute::binary-size(2), ":", second::binary-size(2),
           rest::binary>>
       ) do
     month_name = get_month_name(month_digits)

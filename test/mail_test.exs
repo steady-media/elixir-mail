@@ -187,7 +187,8 @@ defmodule MailTest do
 
   test "get_text with multipart and multiple values" do
     text = "I am the body!"
-    mail = 
+
+    mail =
       Mail.Message.put_part(
         Mail.build_multipart(),
         Mail.Message.put_content_type(%Mail.Message{}, "text/plain; charset=UTF-8; format=flowed")
@@ -195,7 +196,7 @@ defmodule MailTest do
         |> Mail.Message.put_body(text)
       )
 
-    parsed_mail = 
+    parsed_mail =
       mail
       |> Mail.render()
       |> Mail.Parsers.RFC2822.parse()
