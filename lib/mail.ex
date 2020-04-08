@@ -80,7 +80,7 @@ defmodule Mail do
 
       Mail.put_html(%Mail.Message{}, "<span>Some HTML</span>")
 
-  If a text part already exists this function will replace that existing
+  If a HTML part already exists this function will replace that existing
   part with the new part.
   """
   def put_html(%Mail.Message{multipart: true} = message, body) do
@@ -108,14 +108,12 @@ defmodule Mail do
   If multipart without part having `content-type` "text/html" will return `nil`
   """
   def get_html(%Mail.Message{multipart: true} = message) do
-    Enum.find(message.parts, fn
-      %Mail.Message{headers: %{"content-type" => "text/html"}} = message -> message
-      _ -> nil
-    end)
+    Enum.find(message.parts, &Mail.Message.match_content_type?(&1, "text/html"))
   end
 
-  def get_html(%Mail.Message{headers: %{"content-type" => "text/html"}} = message), do: message
-  def get_html(%Mail.Message{}), do: nil
+  def get_html(%Mail.Message{} = message) do
+    if Mail.Message.match_content_type?(message, "text/html"), do: message
+  end
 
   @doc """
   Add an attachment part to the message

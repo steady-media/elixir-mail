@@ -108,14 +108,14 @@ defmodule Mail.MessageTest do
 
   test "build_text" do
     message = Mail.Message.build_text("Some text")
-    assert Mail.Message.get_content_type(message) == ["text/plain"]
+    assert Mail.Message.get_content_type(message) == ["text/plain; charset=utf-8"]
     assert Mail.Message.get_header(message, :content_transfer_encoding) == :quoted_printable
     assert message.body == "Some text"
   end
 
   test "build_html" do
     message = Mail.Message.build_html("<h1>Some HTML</h1>")
-    assert Mail.Message.get_content_type(message) == ["text/html"]
+    assert Mail.Message.get_content_type(message) == ["text/html; charset=utf-8"]
     assert Mail.Message.get_header(message, :content_transfer_encoding) == :quoted_printable
     assert message.body == "<h1>Some HTML</h1>"
   end
@@ -164,5 +164,21 @@ defmodule Mail.MessageTest do
 
     message = Mail.Message.put_body(%Mail.Message{}, "test body")
     refute Mail.Message.is_attachment?(message)
+  end
+
+  describe "charset_for_text_parts" do
+    test "defaults to utf-8" do
+      mail = Mail.put_text(Mail.build(), "Some text")
+      assert Mail.Message.get_content_type(mail) == ["text/plain; charset=utf-8"]
+
+      mail = Mail.put_html(Mail.build(), "<h1>Some HTML</h1>")
+      assert Mail.Message.get_content_type(mail) == ["text/html; charset=utf-8"]
+    end
+
+    test "unsetting charset" do
+      mail = Mail.put_text(Mail.build() |> Mail.Message.put_charset_for_text_parts(nil), "Some text")
+
+      assert Mail.Message.get_content_type(mail) == ["text/plain"]
+    end
   end
 end

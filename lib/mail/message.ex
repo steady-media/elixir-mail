@@ -2,7 +2,10 @@ defmodule Mail.Message do
   defstruct headers: %{},
             body: nil,
             parts: [],
-            multipart: false
+            multipart: false,
+            charset_for_text_parts: "utf-8"
+
+  @text_part_regex ~r/text\/(plain|html)/
 
   @doc """
   Add new part
@@ -105,8 +108,9 @@ defmodule Mail.Message do
       Mail.Message.put_content_type(%Mail.Message{}, "text/plain")
       %Mail.Message{headers: %{content_type: ["text/plain"]}}
   """
-  def put_content_type(message, content_type),
-    do: put_header(message, :content_type, content_type)
+  def put_content_type(message, content_type) do
+    put_header(message, :content_type, content_type_with_charset(message, content_type))
+  end
 
   @doc """
   Gets the `content_type` from the header
@@ -182,16 +186,26 @@ defmodule Mail.Message do
     do: put_in(part.body, body)
 
   @doc """
+  Sets the `charset` field on the part
+
+      Mail.Message.put_charset_for_text_parts(%Mail.Message{}, "iso-8859-1")
+      %Mail.Message{charset_for_text_parts: "iso-8859-1"}
+  """
+  def put_charset_for_text_parts(%Mail.Message{} = message, charset),
+    do: put_in(message.charset_for_text_parts, charset)
+
+  @doc """
   Build a new text message
 
       Mail.Message.build_text("Some text")
       %Mail.Message{body: "Some text", headers: %{content_type: "text/plain"}}
   """
-  def build_text(body),
-    do:
-      put_content_type(%Mail.Message{}, "text/plain")
-      |> put_header(:content_transfer_encoding, :quoted_printable)
-      |> put_body(body)
+  def build_text(body) do
+    put_content_type(%Mail.Message{}, "text/plain")
+    |> put_header(:content_transfer_encoding, :quoted_printable)
+    |> put_body(body)
+    |> put_content_type("text/plain")
+  end
 
   @doc """
   Build a new HTML message
@@ -204,6 +218,7 @@ defmodule Mail.Message do
       put_content_type(%Mail.Message{}, "text/html")
       |> put_header(:content_transfer_encoding, :quoted_printable)
       |> put_body(body)
+      |> put_content_type("text/html")
 
   @doc """
   Add attachment meta data to a `Mail.Message`
@@ -307,7 +322,11 @@ defmodule Mail.Message do
   Returns `Boolean`
   """
   def is_text_part?(message) do
-    match_content_type?(message, ~r/text\/(plain|html)/)
+    match_content_type?(message, @text_part_regex)
+  end
+
+  def is_text_content_type?(content_type) do
+    Regex.match?(@text_part_regex, content_type)
   end
 
   @doc """
@@ -333,5 +352,31 @@ defmodule Mail.Message do
       |> List.last()
 
     mimetype_fn.(extension)
+  end
+
+  def content_type_with_charset(%Mail.Message{charset_for_text_parts: charset_for_text_parts}, content_type) when is_bitstring(content_type) do
+    if is_nil(charset_for_text_parts) || !is_text_content_type?(content_type) do
+      content_type
+    else
+      "#{strip_charset(content_type)}; charset=#{charset_for_text_parts}"
+    end
+  end
+
+  def content_type_with_charset(%Mail.Message{charset_for_text_parts: charset_for_text_parts}, [content_type | rest]) do
+    content_type =
+      if is_nil(charset_for_text_parts) || !is_text_content_type?(content_type) do
+        content_type
+      else
+        "#{strip_charset(content_type)}; charset=#{charset_for_text_parts}"
+      end
+
+    [content_type | rest]
+  end
+
+  def strip_charset(header) do
+    header
+    |> String.split("; ")
+    |> Enum.reject(&String.starts_with?(&1, "charset="))
+    |> Enum.join("; ")
   end
 end
